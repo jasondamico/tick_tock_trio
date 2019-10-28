@@ -1,0 +1,162 @@
+#include <SoftwareSerial.h>
+#include <Wire.h> // For master/slave
+
+// CONSTANTS
+int SPEAKER_PORT = 0;
+
+int LCD_PORT = 6;
+
+// GLOBAL VARIABLES
+
+int timeValues[3];
+int h = 0;
+int m = 0;
+int s = 0;
+int ms = 0;
+
+// Attach the serial enabld LCD's RX line to digital pin 6
+SoftwareSerial LCD(LCD_PORT, 5); // Arduino SS_RX = pin 6 (unused), Arduino SS_TX = pin 5 
+
+void setup() {
+  Wire.begin(2);                // join i2c bus with address #8
+  Wire.onReceive(receiveEvent); // register event
+  Serial.begin(9600);           // start serial for output
+
+  LCD.begin(9600); // set up serial port for 9600 baud
+  delay(500); // wait for display to boot 
+
+  setTime(8, 5);
+}
+
+void loop() {
+  //receiveEvent(2);
+
+  timeTeller();
+}
+
+// function that executes whenever data is received from master
+// this function is registered as an event, see setup()
+void receiveEvent(int howMany) {
+  while(0 < Wire.available()) {
+    for(int i = 0; i < 3; i++) {
+      timeValues[i] = Wire.read();
+    }
+    Serial.print((String) timeValues[0]);
+    Serial.print(":");
+    Serial.print((String) timeValues[1]);
+    Serial.print(":");
+    Serial.print((String) timeValues[2]);
+    Serial.println();
+
+    char hourString[10], minString[10], secString[10]; // create string arrays
+
+    sprintf(hourString,"%4d",timeValues[0]); // create strings from the numbers
+    sprintf(minString,"%4d",timeValues[1]);
+    sprintf(secString,"%4d",timeValues[2]);
+
+    resetLCD();
+    LCD.write(hourString);
+    LCD.write(":");
+    LCD.write(minString);
+    LCD.write(":");
+    LCD.write(secString);
+  }
+ 
+}
+
+void timeTeller() {
+
+
+    // NOTE: Maybe change to ms to get better functionality, remember what Merek was saying about checking for button pushes 
+    delay(950); // Adjustment so time increments in correct portions
+    s++;
+    //ms += 10;
+
+    if(ms == 170) {
+      s++;
+      ms = 0;
+    }
+  
+    // checks to update the time
+    if(s == 60) {
+      s = 0;
+      Serial.println("DEBUG");
+      m++;
+      if(m==60) {
+        h++;
+        m = 0;
+      }
+      
+    }
+  
+    Serial.print("Hours: ");
+    Serial.print(h);
+    Serial.print(" Minutes: ");
+    Serial.print(m);
+    Serial.print(" Seconds: ");
+    Serial.println(s);
+/*
+    Wire.beginTransmission(2); // transmit to device #2
+    Wire.write(h);
+    Wire.write(m);
+    Wire.write(s);  
+    Wire.endTransmission(true);    // stop 
+*/    
+    char hourString[10], minString[10], secString[10];
+
+    sprintf(hourString,"%4d",h); // create strings from the numbers
+    sprintf(minString,"%4d",m);
+    sprintf(secString,"%4d",s);
+
+    Serial.println("TEST");
+    resetLCD();
+    LCD.write(hourString);
+    LCD.write(":");
+    LCD.write(minString);
+    LCD.write(":");
+    LCD.write(secString);
+  
+}
+
+// LCD FUNCTIONS
+
+/* 16 spaces */
+void clearLCD() {
+  LCD.write("                ");
+  LCD.write("                ");
+}
+
+void toFirstLine() {
+  LCD.write(254); 
+  LCD.write(128);
+}
+
+void toSecondLine() {
+  LCD.write(254);
+  LCD.write(192);
+}
+
+void resetLCD() {
+  clearLCD();
+  toFirstLine();
+}
+/*
+void playAlarm(int level) {
+  resetLCD();
+  LCD.write("WAKE UP!");
+  
+  if(level == 1) {
+    digitalWrite(GREEN_PORT, HIGH); // Green
+  } 
+  else if (level == 2) {
+    digitalWrite(YELLOW_PORT, HIGH); // Yellow
+  }
+  else if (level == 3) {
+    digitalWrite(RED_PORT, HIGH); // Red
+  }
+}*/
+
+void setTime(int hours, int mins) {
+  h = hours;
+  m = mins;
+}
