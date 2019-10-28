@@ -1,0 +1,226 @@
+#include <SoftwareSerial.h>
+#include <Wire.h> // For master/slave
+
+// CONSTANTS
+
+int BLUE_PORT = 7;
+int RED_PORT = 8;
+int YELLOW_PORT = 9;
+int GREEN_PORT = 10;
+
+int BLUE_BUTTON = A0;
+int RED_BUTTON = A1;
+int GREEN_BUTTON = A2;
+int YELLOW_BUTTON = A3;
+
+// GLOBAL VARIABLES
+
+int alarmHour = 13;
+int alarmMin = 61;
+int counter = 0;
+
+
+
+void setup() {
+  // put your setup code here, to run once:
+  Wire.begin(); // join i2c bus (address optional for master)
+  
+  Serial.begin(9600);
+  Serial.println("TIME TELLER");
+  
+  pinMode(BLUE_PORT, OUTPUT); // Blue
+  pinMode(RED_PORT, OUTPUT); // Red
+  pinMode(YELLOW_PORT, OUTPUT); // Yellow
+  pinMode(GREEN_PORT, OUTPUT); // Green
+/*
+  LCD.begin(9600); // set up serial port for 9600 baud
+  delay(500); // wait for display to boot up*/
+
+  
+}
+
+void loop() {
+  counter = 0;
+  /*
+  while(analogRead(BLUE_BUTTON) == 0) {
+    digitalWrite(BLUE_PORT, HIGH);
+    digitalWrite(RED_PORT, LOW);
+    digitalWrite(YELLOW_PORT, LOW);
+    digitalWrite(GREEN_PORT, LOW);
+
+    countUp();
+  }
+  counter = 0;
+  
+  while(analogRead(RED_BUTTON) == 0) {
+    digitalWrite(RED_PORT, HIGH);
+    digitalWrite(BLUE_PORT, LOW);
+    digitalWrite(YELLOW_PORT, LOW);
+    digitalWrite(GREEN_PORT, LOW);
+
+    countUp();
+  }
+  counter = 0;
+  
+  while (analogRead(GREEN_BUTTON) == 0) {
+    digitalWrite(GREEN_PORT, HIGH);
+    digitalWrite(BLUE_PORT, LOW);
+    digitalWrite(RED_PORT, LOW);
+    digitalWrite(YELLOW_PORT, LOW);
+
+    countUp();
+  }
+  counter = 0;
+  
+  while (analogRead(YELLOW_BUTTON) == 0) {
+    digitalWrite(YELLOW_PORT, HIGH);
+    digitalWrite(BLUE_PORT, LOW);
+    digitalWrite(RED_PORT, LOW);
+    digitalWrite(GREEN_PORT, LOW);
+
+    countUp();
+  }
+    digitalWrite(BLUE_PORT, LOW);
+    digitalWrite(RED_PORT, LOW);
+    digitalWrite(YELLOW_PORT, LOW);
+    digitalWrite(GREEN_PORT, LOW); */
+    
+  Serial.print(analogRead(A0));
+  Serial.print("    ");
+  Serial.print(analogRead(A1));
+  Serial.print("    ");
+  Serial.print(analogRead(A2));
+  Serial.print("    ");
+  Serial.println(analogRead(A3));
+/*
+  // Slave trasmission
+  Wire.beginTransmission(2); // transmit to device #2
+  Wire.write("HELLO WORLD!");        // sends five bytes
+  Wire.write("HI TAM!");              // sends one byte
+  Wire.endTransmission();    // stop transmitting */
+
+  Wire.beginTransmission(2); // transmit to device #2
+  timeTeller(11, 25);
+  Wire.endTransmission();    // stop transmitting
+}
+
+// Updates the time every second
+void timeTeller(int currentHour, int currentMin) {
+  int h = currentHour;
+  int m = currentMin;
+  int s = 0;
+  int ms = 0;
+  setAlarm(11, 26);
+
+  while(true) {
+    // NOTE: Maybe change to ms to get better functionality, remember what Merek was saying about checking for button pushes 
+    delay(1000);
+    //ms += 10;
+
+    if(ms == 170) {
+      s++;
+      ms = 0;
+    }
+  
+    // checks to update the time
+    if(s == 60) {
+      s = 0;
+      Serial.println("DEBUG");
+      m++;
+      if(m==60) {
+        h++;
+        m = 0;
+      }
+  
+      displayTime(h, m);
+      checkAlarm(h, m);
+      
+    }
+  
+    Serial.print("Hours: ");
+    Serial.print(h);
+    Serial.print(" Minutes: ");
+    Serial.print(m);
+    Serial.print(" Seconds: ");
+    Serial.println(s);
+
+    Wire.beginTransmission(2); // transmit to device #2
+    Wire.write(h);
+    Wire.write(m);
+    Wire.write(s);  
+    Wire.endTransmission(true);    // stop 
+    
+    Serial.println("TEST");
+  }
+}
+
+/* LCD Display corresponding to time */
+void displayTime(int hour, int mins) {
+  
+}
+
+void setAlarm(int hour, int mins) {
+  alarmHour = hour;
+  alarmMin = mins;
+}
+
+void checkAlarm(int hours, int mins) {
+  if (alarmHour == hours && alarmMin == mins){
+    Serial.println("ALARM");
+  }
+}
+
+// LCD FUNCTIONS
+/*
+/* 16 spaces 
+void clearLCD() {
+  LCD.write("                ");
+  LCD.write("                ");
+}
+
+void toFirstLine() {
+  LCD.write(254); 
+  LCD.write(128);
+}
+
+void toSecondLine() {
+  LCD.write(254);
+  LCD.write(192);
+}
+
+void resetLCD() {
+  clearLCD();
+  toFirstLine();
+}
+
+void playAlarm(int level) {
+  resetLCD();
+  LCD.write("WAKE UP!");
+  
+  if(level == 1) {
+    digitalWrite(GREEN_PORT, HIGH); // Green
+  } 
+  else if (level == 2) {
+    digitalWrite(YELLOW_PORT, HIGH); // Yellow
+  }
+  else if (level == 3) {
+    digitalWrite(RED_PORT, HIGH); // Red
+  }
+}
+*/
+
+void countUp() {
+  // delay(1);
+  counter++;
+  Serial.println(counter);
+
+  // Takes roughly 5x the amount of time specified
+  if(counter == 200) {
+    digitalWrite(BLUE_PORT, HIGH);
+    digitalWrite(RED_PORT, HIGH);
+    digitalWrite(YELLOW_PORT, HIGH);
+    digitalWrite(GREEN_PORT, HIGH);
+
+    delay(1000);
+  }
+}
