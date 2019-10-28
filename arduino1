@@ -18,8 +18,10 @@ int YELLOW_BUTTON = A3;
 int alarmHour = 13;
 int alarmMin = 61;
 int counter = 0;
-
-
+int h = 0;
+int m = 0;
+int s = 0;
+int ms = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -36,19 +38,19 @@ void setup() {
   LCD.begin(9600); // set up serial port for 9600 baud
   delay(500); // wait for display to boot up*/
 
-  
+  setTime(8, 5);
 }
 
 void loop() {
   counter = 0;
-  /*
+  
   while(analogRead(BLUE_BUTTON) == 0) {
     digitalWrite(BLUE_PORT, HIGH);
     digitalWrite(RED_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
     digitalWrite(GREEN_PORT, LOW);
 
-    countUp();
+    countUp(1000);
   }
   counter = 0;
   
@@ -58,7 +60,7 @@ void loop() {
     digitalWrite(YELLOW_PORT, LOW);
     digitalWrite(GREEN_PORT, LOW);
 
-    countUp();
+    countUp(1000);
   }
   counter = 0;
   
@@ -68,7 +70,7 @@ void loop() {
     digitalWrite(RED_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
 
-    countUp();
+    countUp(1000);
   }
   counter = 0;
   
@@ -78,12 +80,12 @@ void loop() {
     digitalWrite(RED_PORT, LOW);
     digitalWrite(GREEN_PORT, LOW);
 
-    countUp();
+    countUp(1000);
   }
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(RED_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
-    digitalWrite(GREEN_PORT, LOW); */
+    digitalWrite(GREEN_PORT, LOW); 
     
   Serial.print(analogRead(A0));
   Serial.print("    ");
@@ -92,29 +94,17 @@ void loop() {
   Serial.print(analogRead(A2));
   Serial.print("    ");
   Serial.println(analogRead(A3));
-/*
-  // Slave trasmission
-  Wire.beginTransmission(2); // transmit to device #2
-  Wire.write("HELLO WORLD!");        // sends five bytes
-  Wire.write("HI TAM!");              // sends one byte
-  Wire.endTransmission();    // stop transmitting */
 
-  Wire.beginTransmission(2); // transmit to device #2
-  timeTeller(11, 25);
-  Wire.endTransmission();    // stop transmitting
+  /*Wire.beginTransmission(2); // transmit to device #2
+  timeTeller();
+  Wire.endTransmission();    // stop transmitting*/
 }
 
 // Updates the time every second
-void timeTeller(int currentHour, int currentMin) {
-  int h = currentHour;
-  int m = currentMin;
-  int s = 0;
-  int ms = 0;
-  setAlarm(11, 26);
-
-  while(true) {
+void timeTeller() {
     // NOTE: Maybe change to ms to get better functionality, remember what Merek was saying about checking for button pushes 
-    delay(1000);
+    delay(950); // Adjustment so time increments in correct portions
+    s++;
     //ms += 10;
 
     if(ms == 170) {
@@ -132,7 +122,6 @@ void timeTeller(int currentHour, int currentMin) {
         m = 0;
       }
   
-      displayTime(h, m);
       checkAlarm(h, m);
       
     }
@@ -151,17 +140,17 @@ void timeTeller(int currentHour, int currentMin) {
     Wire.endTransmission(true);    // stop 
     
     Serial.println("TEST");
-  }
-}
-
-/* LCD Display corresponding to time */
-void displayTime(int hour, int mins) {
   
 }
 
 void setAlarm(int hour, int mins) {
   alarmHour = hour;
   alarmMin = mins;
+}
+
+void setTime(int hours, int mins) {
+  h = hours;
+  m = mins;
 }
 
 void checkAlarm(int hours, int mins) {
@@ -209,13 +198,12 @@ void playAlarm(int level) {
 }
 */
 
-void countUp() {
-  // delay(1);
+void countUp(int toCount) {
   counter++;
   Serial.println(counter);
 
   // Takes roughly 5x the amount of time specified
-  if(counter == 200) {
+  if(counter == (toCount / 5)) {
     digitalWrite(BLUE_PORT, HIGH);
     digitalWrite(RED_PORT, HIGH);
     digitalWrite(YELLOW_PORT, HIGH);
