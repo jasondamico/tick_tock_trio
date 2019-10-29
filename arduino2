@@ -22,13 +22,33 @@ SoftwareSerial LCD(LCD_PORT, 5); // Arduino SS_RX = pin 6 (unused), Arduino SS_T
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
 
+void checkTime() {
+  if(s == 60) {
+    m++;
+    s = 0;
+  }
+
+  if(m == 60) {
+    h++;
+    m = 0;
+  }
+
+  if(h == 13) {
+    h = 0;
+  }
+}
+
 void receiveEvent(int howMany) {
   while(0 < Wire.available()) {
       testVar = Wire.read();
       if(testVar == 2) {
-        increment++;
+        h++;
+      } else if (testVar == 4) {
+        m++;
       }
   }
+
+  checkTime();
 }
 
 void timeTeller() {
@@ -68,19 +88,7 @@ void timeTeller() {
     Wire.write(s);  
     Wire.endTransmission(true);    // stop 
 */    
-    char hourString[10], minString[10], secString[10];
-
-    sprintf(hourString,"%4d",h); // create strings from the numbers
-    sprintf(minString,"%4d",m);
-    sprintf(secString,"%4d",s);
-
-    Serial.println("TEST");
-    resetLCD();
-    LCD.write(hourString);
-    LCD.write(":");
-    LCD.write(minString);
-    LCD.write(":");
-    LCD.write(secString);
+    displayTime();
   
 }
 
@@ -128,30 +136,62 @@ void setTime(int hours, int mins) {
 }
 
 void timeSetterMode() {
-  boolean onValue = true;
+  boolean switchMethod = false;
   boolean buttonPushed = false;
   Serial.println("WOOHOO!");
 
   increment = 0;
-  
-  while(onValue) {
+
+  // Changing the hour
+  while(!switchMethod) {
     
     receiveEvent(1);
-
+/*
     char incStr[10];
 
     sprintf(incStr,"%4d",increment); // create strings from the numbers
     resetLCD();
-    LCD.write(incStr);
+    LCD.write(incStr);*/
+    displayTime();
 
     if(testVar == 3) {
       resetLCD();
       LCD.write("Nice job");
       delay(5000);
+      switchMethod = true;
+    }
+  }
+
+  switchMethod = false;
+
+  while(!switchMethod) {
+    receiveEvent(1);
+
+    displayTime();
+
+    if(testVar == 5){
+      resetLCD();
+      LCD.write("Good deal");
+      delay(5000);
+      switchMethod = true;
     }
   }
 }
 
+void displayTime() {
+  char hourString[10], minString[10], secString[10];
+
+  sprintf(hourString,"%4d",h); // create strings from the numbers
+  sprintf(minString,"%4d",m);
+  sprintf(secString,"%4d",s);
+
+  resetLCD();
+  LCD.write(hourString);
+  LCD.write(":");
+  LCD.write(minString);
+  LCD.write(":");
+  LCD.write(secString);
+}
 
 void setup() {
   Wire.begin(2);                // join i2c bus with address #8
