@@ -225,12 +225,12 @@ void playAlarm(int level) {
 */
 
 void timeSetterMode() {
-  boolean onValue = true;
   boolean buttonPushed = false;
   boolean firstRun = true;
   boolean switchMethod = false;
-  
-  while(onValue) {
+
+  // Changing the hour
+  while(!switchMethod) {
     while(firstRun) {
       if(analogRead(BLUE_BUTTON) != 0) {
         firstRun = false;
@@ -240,15 +240,11 @@ void timeSetterMode() {
     
     while(analogRead(BLUE_BUTTON) == 0 && !switchMethod) {
       countUp();
-      /*
-      Serial.print("        ");
-      Serial.println(analogRead(BLUE_BUTTON));*/
       if(counter >= 20){
         buttonPushed = true;
       }
 
       if(counter >= 1000) {
-        onValue = false;
         switchMethod = true;
       }
     } 
@@ -262,16 +258,63 @@ void timeSetterMode() {
     }
 
     counter = 0;
-  }
+  } 
 
   Wire.beginTransmission(2); // transmit to device #2
   Wire.write(3);
   Wire.endTransmission(true);    // stop
 
-  onValue = true;
+  switchMethod = false;
 
-  while(onValue) {
-    
+  // Changing the minutes
+  while(!switchMethod) {
+    while(firstRun) {
+      if(analogRead(BLUE_BUTTON) != 0) {
+        firstRun = false;
+        delay(1000);
+      }
+    }
+
+    while(analogRead(BLUE_BUTTON) == 0 && !switchMethod) {
+      countUp();
+      if(counter >= 20){
+        buttonPushed = true;
+      }
+
+      if(counter >= 1000) {
+        switchMethod = true;
+      }
+    } 
+
+    if (buttonPushed) {
+      Wire.beginTransmission(2); // transmit to device #2
+      Wire.write(4);
+      Wire.endTransmission(true);    // stop 
+
+      buttonPushed = false;
+    }
+
+    counter = 0;
+  }
+
+  Wire.beginTransmission(2); // transmit to device #2
+  Wire.write(5);
+  Wire.endTransmission(true);    // stop  
+}
+
+void checkTime() {
+  if(s == 60) {
+    m++;
+    s = 0;
+  }
+
+  if(m == 60) {
+    h++;
+    m = 0;
+  }
+
+  if(h == 13) {
+    h = 0;
   }
 }
 
