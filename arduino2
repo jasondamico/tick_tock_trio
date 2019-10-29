@@ -25,13 +25,9 @@ SoftwareSerial LCD(LCD_PORT, 5); // Arduino SS_RX = pin 6 (unused), Arduino SS_T
 void receiveEvent(int howMany) {
   while(0 < Wire.available()) {
       testVar = Wire.read();
-      increment++;
-  }
-}
-
-void receiveIncrement (int howMany) {
-  while(0 < Wire.available()) {
-      increment++;
+      if(testVar == 2) {
+        increment++;
+      }
   }
 }
 
@@ -135,16 +131,24 @@ void timeSetterMode() {
   boolean onValue = true;
   boolean buttonPushed = false;
   Serial.println("WOOHOO!");
+
+  increment = 0;
   
   while(onValue) {
     
-    receiveIncrement(1);
+    receiveEvent(1);
 
     char incStr[10];
 
     sprintf(incStr,"%4d",increment); // create strings from the numbers
     resetLCD();
     LCD.write(incStr);
+
+    if(testVar == 3) {
+      resetLCD();
+      LCD.write("Nice job");
+      delay(5000);
+    }
   }
 }
 
