@@ -22,6 +22,7 @@ int h = 0;
 int m = 0;
 int s = 0;
 int ms = 0;
+String timeOfDay = "am";
 
 void setup() {
   // put your setup code here, to run once:
@@ -90,9 +91,10 @@ void loop() {
 
     countUp();
   }
+  
   counter = 0;
   
-  while (analogRead(GREEN_BUTTON) == 0) {
+  while (analogRead(GREEN_BUTTON) == 0 && counter < 200) {
     digitalWrite(GREEN_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(RED_PORT, LOW);
@@ -100,6 +102,17 @@ void loop() {
 
     countUp();
   }
+
+  if(counter == 200) {
+    Wire.beginTransmission(2); // transmit to device #2
+    Wire.write(6);
+    Wire.endTransmission(true);    // stop 
+    delay(1000);
+      
+    Serial.println("Message sent...");
+    alarmSetterMode();
+  }
+  
   counter = 0;
   
   while (analogRead(YELLOW_BUTTON) == 0) {
@@ -122,51 +135,6 @@ void loop() {
   Serial.print(analogRead(A2));
   Serial.print("    ");
   Serial.println(analogRead(A3));
-
-  /*Wire.beginTransmission(2); // transmit to device #2
-  timeTeller();
-  Wire.endTransmission();    // stop transmitting*/
-}
-
-// Updates the time every second
-void timeTeller() {
-    // NOTE: Maybe change to ms to get better functionality, remember what Merek was saying about checking for button pushes 
-    delay(950); // Adjustment so time increments in correct portions
-    s++;
-    //ms += 10;
-
-    if(ms == 170) {
-      s++;
-      ms = 0;
-    }
-  
-    // checks to update the time
-    if(s == 60) {
-      s = 0;
-      Serial.println("DEBUG");
-      m++;
-      if(m==60) {
-        h++;
-        m = 0;
-      }
-  
-      checkAlarm(h, m);
-      
-    }
-  
-    Serial.print("Hours: ");
-    Serial.print(h);
-    Serial.print(" Minutes: ");
-    Serial.print(m);
-    Serial.print(" Seconds: ");
-    Serial.println(s);
-
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(h);
-    Wire.write(m);
-    Wire.write(s);  
-    Wire.endTransmission(true);    // stop 
-  
 }
 
 void setAlarm(int hour, int mins) {
@@ -234,7 +202,7 @@ void timeSetterMode() {
     while(firstRun) {
       if(analogRead(BLUE_BUTTON) != 0) {
         firstRun = false;
-        delay(1000);
+        delay(100);
       }
     }
     
@@ -244,12 +212,12 @@ void timeSetterMode() {
         buttonPushed = true;
       }
 
-      if(counter >= 1000) {
+      if(counter >= 600) {
         switchMethod = true;
       }
     } 
 
-    if (buttonPushed) {
+    if (buttonPushed && counter < 600) {
       Wire.beginTransmission(2); // transmit to device #2
       Wire.write(2);
       Wire.endTransmission(true);    // stop 
@@ -265,13 +233,15 @@ void timeSetterMode() {
   Wire.endTransmission(true);    // stop
 
   switchMethod = false;
+  firstRun = true;
+  buttonPushed = false;
 
   // Changing the minutes
   while(!switchMethod) {
     while(firstRun) {
       if(analogRead(BLUE_BUTTON) != 0) {
         firstRun = false;
-        delay(1000);
+        delay(100);
       }
     }
 
@@ -281,12 +251,12 @@ void timeSetterMode() {
         buttonPushed = true;
       }
 
-      if(counter >= 1000) {
+      if(counter >= 600) {
         switchMethod = true;
       }
     } 
 
-    if (buttonPushed) {
+    if (buttonPushed && counter < 600) {
       Wire.beginTransmission(2); // transmit to device #2
       Wire.write(4);
       Wire.endTransmission(true);    // stop 
@@ -302,6 +272,86 @@ void timeSetterMode() {
   Wire.endTransmission(true);    // stop  
 }
 
+void alarmSetterMode() {
+  boolean buttonPushed = false;
+  boolean firstRun = true;
+  boolean switchMethod = false;
+
+  // Changing the hour
+  while(!switchMethod) {
+    while(firstRun) {
+      if(analogRead(GREEN_BUTTON) != 0) {
+        firstRun = false;
+        delay(100);
+      }
+    }
+    
+    while(analogRead(GREEN_BUTTON) == 0 && !switchMethod) {
+      countUp();
+      if(counter >= 20){
+        buttonPushed = true;
+      }
+
+      if(counter >= 600) {
+        switchMethod = true;
+      }
+    } 
+
+    if (buttonPushed && counter < 600) {
+      Wire.beginTransmission(2); // transmit to device #2
+      Wire.write(7);
+      Wire.endTransmission(true);    // stop 
+
+      buttonPushed = false;
+    }
+
+    counter = 0;
+  } 
+
+  Wire.beginTransmission(2); // transmit to device #2
+  Wire.write(8);
+  Wire.endTransmission(true);    // stop
+
+  switchMethod = false;
+  firstRun = true;
+  buttonPushed = false;
+
+  // Changing the minutes
+  while(!switchMethod) {
+    while(firstRun) {
+      if(analogRead(GREEN_BUTTON) != 0) {
+        firstRun = false;
+        delay(100);
+      }
+    }
+
+    while(analogRead(GREEN_BUTTON) == 0 && !switchMethod) {
+      countUp();
+      if(counter >= 20){
+        buttonPushed = true;
+      }
+
+      if(counter >= 600) {
+        switchMethod = true;
+      }
+    } 
+
+    if (buttonPushed && counter < 600) {
+      Wire.beginTransmission(2); // transmit to device #2
+      Wire.write(9);
+      Wire.endTransmission(true);    // stop 
+
+      buttonPushed = false;
+    }
+
+    counter = 0;
+  }
+
+  Wire.beginTransmission(2); // transmit to device #2
+  Wire.write(10);
+  Wire.endTransmission(true);    // stop  
+}
+
 void checkTime() {
   if(s == 60) {
     m++;
@@ -314,7 +364,12 @@ void checkTime() {
   }
 
   if(h == 13) {
-    h = 0;
+    h = 1;
+    if (timeOfDay == "am") {
+      timeOfDay = "pm";
+    } else {
+      timeOfDay = "am";
+    }
   }
 }
 
