@@ -2,16 +2,17 @@
 #include <Wire.h> // For master/slave
 
 // CONSTANTS
-int SPEAKER_PORT = 0;
+int SPEAKER_1 = 9;
+int SPEAKER_2 = 10;
 
 int LCD_PORT = 6;
 
 // GLOBAL VARIABLES
 
-int alarmH = 0;
+int alarmH = 12;
 int alarmM = 0;
 String alarmTimeOfDay = "am";
-boolean alarmOn = false;
+boolean alarmOn = true;
 int h = 0;
 int m = 0;
 int s = 0;
@@ -314,6 +315,18 @@ void checkAlarmTimeOfDay() {
   }
 }
 
+void alarm() {
+  if(alarmOn && alarmH == h && alarmM == m){
+    resetLCD();
+    LCD.write("ALARM");
+    tone(SPEAKER_1, 2000, 1000);
+    delay(1000);
+    tone(SPEAKER_1, 1000, 1000);
+    delay(1000);
+    tone(SPEAKER_1, 1000, 0);
+  }
+}
+
 void setup() {
   Wire.begin(2);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
@@ -334,4 +347,5 @@ void loop() {
     alarmSetterMode();
   }
   timeTeller();
+  alarm();
 }
