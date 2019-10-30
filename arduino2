@@ -10,12 +10,12 @@ int LCD_PORT = 6;
 // GLOBAL VARIABLES
 
 int alarmH = 12;
-int alarmM = 0;
+int alarmM = 1;
 String alarmTimeOfDay = "am";
 boolean alarmOn = true;
 int h = 0;
 int m = 0;
-int s = 0;
+int s = 51;
 int ms = 0;
 int testVar = 0;
 int increment = 0;
@@ -161,6 +161,8 @@ void setTime(int hours, int mins) {
 }
 
 void timeSetterMode() {
+  int startTime = millis();
+  Serial.println(startTime);
   s = 0;
   
   boolean switchMethod = false;
@@ -198,9 +200,21 @@ void timeSetterMode() {
       switchMethod = true;
     }
   }
+
+  int endTime = millis();
+  Serial.println(endTime);  
+
+  s = s + (endTime - startTime) / 1000;
+  if(s >= 60) {
+    s -= 60;
+    m++; 
+  }
 }
 
 void alarmSetterMode() {;
+  int startTime = millis();
+  Serial.println(startTime);
+  
   boolean switchMethod = false;
   Serial.println("WOOHOO!");
 
@@ -235,6 +249,15 @@ void alarmSetterMode() {;
       resetLCD();
       switchMethod = true;
     }
+  }
+
+  int endTime = millis();
+  Serial.println(endTime);  
+
+  s = s + (endTime - startTime) / 1000;
+  if(s >= 60) {
+    s -= 60;
+    m++; 
   }
 }
 
@@ -319,11 +342,9 @@ void alarm() {
   if(alarmOn && alarmH == h && alarmM == m){
     resetLCD();
     LCD.write("ALARM");
-    tone(SPEAKER_1, 2000, 1000);
-    delay(1000);
-    tone(SPEAKER_1, 1000, 1000);
-    delay(1000);
-    tone(SPEAKER_1, 1000, 0);
+    if(s % 2 == 0) {
+      tone(SPEAKER_1, 2000, 1000);
+    } 
   }
 }
 
