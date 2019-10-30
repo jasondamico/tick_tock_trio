@@ -8,13 +8,17 @@ int LCD_PORT = 6;
 
 // GLOBAL VARIABLES
 
-int timeValues[3];
+int alarmH = 0;
+int alarmM = 0;
+String alarmTimeOfDay = "am";
+boolean alarmOn = false;
 int h = 0;
 int m = 0;
 int s = 0;
 int ms = 0;
 int testVar = 0;
 int increment = 0;
+String timeOfDay = "am";
 
 // Attach the serial enabld LCD's RX line to digital pin 6
 SoftwareSerial LCD(LCD_PORT, 5); // Arduino SS_RX = pin 6 (unused), Arduino SS_TX = pin 5 
@@ -30,11 +34,24 @@ void checkTime() {
 
   if(m == 60) {
     h++;
+    checkTimeOfDay();
     m = 0;
   }
 
   if(h == 13) {
-    h = 0;
+    h = 1;
+  }
+}
+
+void checkAlarmTime() {
+  if(alarmM == 60) {
+    alarmH++;
+    checkAlarmTimeOfDay();
+    alarmM = 0;
+  }
+
+  if(alarmH == 13) {
+    alarmH = 1;
   }
 }
 
@@ -43,16 +60,29 @@ void receiveEvent(int howMany) {
       testVar = Wire.read();
       if(testVar == 2) {
         h++;
+        checkTimeOfDay();
       } else if (testVar == 4) {
         m++;
+      } else if (testVar == 7) {
+        alarmH++;
+        checkAlarmTimeOfDay();
+      } else if (testVar == 9) {
+        alarmM++;
       }
   }
 
   checkTime();
+  checkAlarmTime();
 }
 
 void timeTeller() {
-
+    Serial.print("Hours: ");
+    Serial.print(h);
+    Serial.print(" Minutes: ");
+    Serial.print(m);
+    Serial.print(" Seconds: ");
+    Serial.println(s);
+    displayTime("");
 
     // NOTE: Maybe change to ms to get better functionality, remember what Merek was saying about checking for button pushes 
     delay(950); // Adjustment so time increments in correct portions
@@ -70,17 +100,12 @@ void timeTeller() {
       m++;
       if(m==60) {
         h++;
+        checkTimeOfDay();
         m = 0;
       }
       
     }
   
-    Serial.print("Hours: ");
-    Serial.print(h);
-    Serial.print(" Minutes: ");
-    Serial.print(m);
-    Serial.print(" Seconds: ");
-    Serial.println(s);
 /*
     Wire.beginTransmission(2); // transmit to device #2
     Wire.write(h);
@@ -88,7 +113,6 @@ void timeTeller() {
     Wire.write(s);  
     Wire.endTransmission(true);    // stop 
 */    
-    displayTime();
   
 }
 
@@ -136,8 +160,9 @@ void setTime(int hours, int mins) {
 }
 
 void timeSetterMode() {
+  s = 0;
+  
   boolean switchMethod = false;
-  boolean buttonPushed = false;
   Serial.println("WOOHOO!");
 
   increment = 0;
@@ -152,12 +177,10 @@ void timeSetterMode() {
     sprintf(incStr,"%4d",increment); // create strings from the numbers
     resetLCD();
     LCD.write(incStr);*/
-    displayTime();
+    displayTime("timeSetterMode");
 
     if(testVar == 3) {
       resetLCD();
-      LCD.write("Nice job");
-      delay(5000);
       switchMethod = true;
     }
   }
@@ -167,23 +190,60 @@ void timeSetterMode() {
   while(!switchMethod) {
     receiveEvent(1);
 
-    displayTime();
+    displayTime("timeSetterMode");
 
     if(testVar == 5){
       resetLCD();
-      LCD.write("Good deal");
-      delay(5000);
       switchMethod = true;
     }
   }
 }
 
-void displayTime() {
-  char hourString[10], minString[10], secString[10];
+void alarmSetterMode() {;
+  boolean switchMethod = false;
+  Serial.println("WOOHOO!");
 
-  sprintf(hourString,"%4d",h); // create strings from the numbers
-  sprintf(minString,"%4d",m);
-  sprintf(secString,"%4d",s);
+  increment = 0;
+
+  // Changing the hour
+  while(!switchMethod) {
+    
+    receiveEvent(1);
+/*
+    char incStr[10];
+
+    sprintf(incStr,"%4d",increment); // create strings from the numbers
+    resetLCD();
+    LCD.write(incStr);*/
+    displayAlarm("alarmSetterMode");
+
+    if(testVar == 8) {
+      resetLCD();
+      switchMethod = true;
+    }
+  }
+
+  switchMethod = false;
+
+  while(!switchMethod) {
+    receiveEvent(1);
+
+    displayAlarm("alarmSetterMode");
+
+    if(testVar == 10){
+      resetLCD();
+      switchMethod = true;
+    }
+  }
+}
+
+void displayTime(String method) {
+  char hourString[10], minString[10], secString[10], todString[10];
+
+  sprintf(hourString,"%2d",h); // create strings from the numbers
+  sprintf(minString,"%2d",m);
+  sprintf(secString,"%2d",s);
+  sprintf(todString,"%2d",timeOfDay);
 
   resetLCD();
   LCD.write(hourString);
@@ -191,6 +251,67 @@ void displayTime() {
   LCD.write(minString);
   LCD.write(":");
   LCD.write(secString);
+  if(timeOfDay == "am") {
+    LCD.write(" am");
+  } else {
+    LCD.write(" pm");
+  }
+
+  if(method == "timeSetterMode") {
+    toSecondLine();
+    if(testVar == 1 || testVar == 2) {
+      LCD.write("Editing Hours...");
+    } else if (testVar == 3 || testVar == 4) {
+      LCD.write("Editing Minutes...");
+    }
+  }
+}
+
+void displayAlarm(String method) {
+  char hourString[10], minString[10], secString[10];
+
+  sprintf(hourString,"%2d",alarmH); // create strings from the numbers
+  sprintf(minString,"%2d",alarmM);
+
+  resetLCD();
+  LCD.write(hourString);
+  LCD.write(":");
+  LCD.write(minString);
+  if(alarmTimeOfDay == "am") {
+    LCD.write(" am");
+  } else {
+    LCD.write(" pm");
+  }
+  LCD.write("    ");
+
+  if(method == "alarmSetterMode") {
+    toSecondLine();
+    if(testVar == 6 || testVar == 7) {
+      LCD.write("Editing Hours...");
+    } else if (testVar == 8 || testVar == 9) {
+      LCD.write("Editing Minutes...");
+    }
+  }
+}
+
+void checkTimeOfDay() {
+  if(h == 12) {
+    if (timeOfDay == "am") {
+      timeOfDay = "pm";
+    } else {
+      timeOfDay = "am";
+    }
+  }
+}
+
+void checkAlarmTimeOfDay() {
+  if(alarmH == 12) {
+    if (alarmTimeOfDay == "am") {
+      alarmTimeOfDay = "pm";
+    } else {
+      alarmTimeOfDay = "am";
+    }
+  }
 }
 
 void setup() {
@@ -201,7 +322,7 @@ void setup() {
   LCD.begin(9600); // set up serial port for 9600 baud
   delay(500); // wait for display to boot 
 
-  setTime(8, 5);
+  setTime(12, 0);
 }
 
 void loop() {
@@ -209,6 +330,8 @@ void loop() {
   Serial.println(testVar);
   if(testVar == 1) {
     timeSetterMode();
+  } else if (testVar == 6) {
+    alarmSetterMode();
   }
   timeTeller();
 }
