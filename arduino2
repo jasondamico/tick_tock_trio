@@ -3,7 +3,10 @@
 
 // CONSTANTS
 int SPEAKER_1 = 9;
-int SPEAKER_2 = 10;
+int SPEAKER_2 = 8;
+const int MA1=2;
+const int MA2=4;
+const int PWMA=3;
 
 int LCD_PORT = 6;
 
@@ -12,7 +15,7 @@ int LCD_PORT = 6;
 int alarmH = 12;
 int alarmM = 1;
 String alarmTimeOfDay = "am";
-boolean alarmOn = true;
+boolean alarmOn = false;
 int h = 0;
 int m = 0;
 int s = 51;
@@ -161,8 +164,6 @@ void setTime(int hours, int mins) {
 }
 
 void timeSetterMode() {
-  int startTime = millis();
-  Serial.println(startTime);
   s = 0;
   
   boolean switchMethod = false;
@@ -201,14 +202,6 @@ void timeSetterMode() {
     }
   }
 
-  int endTime = millis();
-  Serial.println(endTime);  
-
-  s = s + (endTime - startTime) / 1000;
-  if(s >= 60) {
-    s -= 60;
-    m++; 
-  }
 }
 
 void alarmSetterMode() {;
@@ -273,8 +266,6 @@ void displayTime(String method) {
   LCD.write(hourString);
   LCD.write(":");
   LCD.write(minString);
-  LCD.write(":");
-  LCD.write(secString);
   if(timeOfDay == "am") {
     LCD.write(" am");
   } else {
@@ -289,6 +280,18 @@ void displayTime(String method) {
       LCD.write("Editing Minutes...");
     }
   }
+
+  if(alarmOn) {
+    toSecondLine();
+    LCD.write("           ");
+    if(alarmOn) {
+      LCD.write("*");
+    } else {
+      LCD.write(" ");
+    }
+  
+    displayAlarm("displayTime");
+  }
 }
 
 void displayAlarm(String method) {
@@ -297,7 +300,9 @@ void displayAlarm(String method) {
   sprintf(hourString,"%2d",alarmH); // create strings from the numbers
   sprintf(minString,"%2d",alarmM);
 
-  resetLCD();
+  if(method != "displayTime") {
+    resetLCD();
+  }
   LCD.write(hourString);
   LCD.write(":");
   LCD.write(minString);
@@ -344,14 +349,27 @@ void alarm() {
     LCD.write("ALARM");
     if(s % 2 == 0) {
       tone(SPEAKER_1, 2000, 1000);
+      tone(SPEAKER_2, 2000, 1000);
     } 
+
+    moveWheels();
   }
+}
+
+void moveWheels() {
+  digitalWrite(MA1,HIGH);
+  digitalWrite(MA2,LOW);
+  analogWrite(PWMA,255);
 }
 
 void setup() {
   Wire.begin(2);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
   Serial.begin(9600);           // start serial for output
+
+  pinMode(MA1,OUTPUT);
+  pinMode(MA2,OUTPUT);
+  pinMode(PWMA,OUTPUT);
 
   LCD.begin(9600); // set up serial port for 9600 baud
   delay(500); // wait for display to boot 
