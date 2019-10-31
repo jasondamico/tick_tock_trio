@@ -16,12 +16,13 @@ int alarmH = 12;
 int alarmM = 1;
 String alarmTimeOfDay = "am";
 boolean alarmOn = false;
+boolean alarmPlaying = false;
+
 int h = 0;
 int m = 0;
 int s = 51;
 int ms = 0;
-int testVar = 0;
-int increment = 0;
+int methodSignal = 0;
 String timeOfDay = "am";
 
 // Attach the serial enabld LCD's RX line to digital pin 6
@@ -61,17 +62,25 @@ void checkAlarmTime() {
 
 void receiveEvent(int howMany) {
   while(0 < Wire.available()) {
-      testVar = Wire.read();
-      if(testVar == 2) {
+      methodSignal = Wire.read();
+      if(methodSignal == 2) {
         h++;
         checkTimeOfDay();
-      } else if (testVar == 4) {
+      } else if (methodSignal == 4) {
         m++;
-      } else if (testVar == 7) {
+      } else if (methodSignal == 7) {
         alarmH++;
         checkAlarmTimeOfDay();
-      } else if (testVar == 9) {
+      } else if (methodSignal == 9) {
         alarmM++;
+      } else if (methodSignal == 11) {
+        if (alarmOn) {
+          alarmOn = false;
+        } else {
+          alarmOn = true;
+        }
+      } else if (methodSignal == 12) {
+        alarmOff();
       }
   }
 
@@ -110,14 +119,6 @@ void timeTeller() {
       
     }
   
-/*
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(h);
-    Wire.write(m);
-    Wire.write(s);  
-    Wire.endTransmission(true);    // stop 
-*/    
-  
 }
 
 // LCD FUNCTIONS
@@ -142,21 +143,6 @@ void resetLCD() {
   clearLCD();
   toFirstLine();
 }
-/*
-void playAlarm(int level) {
-  resetLCD();
-  LCD.write("WAKE UP!");
-  
-  if(level == 1) {
-    digitalWrite(GREEN_PORT, HIGH); // Green
-  } 
-  else if (level == 2) {
-    digitalWrite(YELLOW_PORT, HIGH); // Yellow
-  }
-  else if (level == 3) {
-    digitalWrite(RED_PORT, HIGH); // Red
-  }
-}*/
 
 void setTime(int hours, int mins) {
   h = hours;
@@ -169,21 +155,13 @@ void timeSetterMode() {
   boolean switchMethod = false;
   Serial.println("WOOHOO!");
 
-  increment = 0;
-
   // Changing the hour
   while(!switchMethod) {
     
     receiveEvent(1);
-/*
-    char incStr[10];
-
-    sprintf(incStr,"%4d",increment); // create strings from the numbers
-    resetLCD();
-    LCD.write(incStr);*/
     displayTime("timeSetterMode");
 
-    if(testVar == 3) {
+    if(methodSignal == 3) {
       resetLCD();
       switchMethod = true;
     }
@@ -196,7 +174,7 @@ void timeSetterMode() {
 
     displayTime("timeSetterMode");
 
-    if(testVar == 5){
+    if(methodSignal == 5){
       resetLCD();
       switchMethod = true;
     }
@@ -211,21 +189,14 @@ void alarmSetterMode() {;
   boolean switchMethod = false;
   Serial.println("WOOHOO!");
 
-  increment = 0;
-
   // Changing the hour
   while(!switchMethod) {
     
     receiveEvent(1);
-/*
-    char incStr[10];
-
-    sprintf(incStr,"%4d",increment); // create strings from the numbers
-    resetLCD();
-    LCD.write(incStr);*/
+    
     displayAlarm("alarmSetterMode");
 
-    if(testVar == 8) {
+    if(methodSignal == 8) {
       resetLCD();
       switchMethod = true;
     }
@@ -238,7 +209,7 @@ void alarmSetterMode() {;
 
     displayAlarm("alarmSetterMode");
 
-    if(testVar == 10){
+    if(methodSignal == 10){
       resetLCD();
       switchMethod = true;
     }
@@ -266,6 +237,8 @@ void displayTime(String method) {
   LCD.write(hourString);
   LCD.write(":");
   LCD.write(minString);
+  LCD.write(":");
+  LCD.write(secString);
   if(timeOfDay == "am") {
     LCD.write(" am");
   } else {
@@ -274,23 +247,29 @@ void displayTime(String method) {
 
   if(method == "timeSetterMode") {
     toSecondLine();
-    if(testVar == 1 || testVar == 2) {
+    if(methodSignal == 1 || methodSignal == 2) {
       LCD.write("Editing Hours...");
-    } else if (testVar == 3 || testVar == 4) {
+    } else if (methodSignal == 3 || methodSignal == 4) {
       LCD.write("Editing Minutes...");
     }
   }
 
-  if(alarmOn) {
+  if(alarmOn && method != "timeSetterMode") {
     toSecondLine();
-    LCD.write("           ");
-    if(alarmOn) {
-      LCD.write("*");
+    if(alarmPlaying) {
+      LCD.write("ALARM PLAYING");
     } else {
-      LCD.write(" ");
+      LCD.write("           ");
+      if(alarmOn) {
+        LCD.write("*");
+      } else {
+        LCD.write(" ");
+      }
+
+      displayAlarm("displayTime");
     }
   
-    displayAlarm("displayTime");
+    
   }
 }
 
@@ -315,9 +294,9 @@ void displayAlarm(String method) {
 
   if(method == "alarmSetterMode") {
     toSecondLine();
-    if(testVar == 6 || testVar == 7) {
+    if(methodSignal == 6 || methodSignal == 7) {
       LCD.write("Editing Hours...");
-    } else if (testVar == 8 || testVar == 9) {
+    } else if (methodSignal == 8 || methodSignal == 9) {
       LCD.write("Editing Minutes...");
     }
   }
@@ -344,16 +323,28 @@ void checkAlarmTimeOfDay() {
 }
 
 void alarm() {
-  if(alarmOn && alarmH == h && alarmM == m){
+  if(alarmOn && alarmH == h && alarmM == m && s == 0){
     resetLCD();
-    LCD.write("ALARM");
+    alarmPlaying = true;
+
+    alarmPlaying = true;
+    
+  } 
+
+  if(alarmPlaying) {
+    moveWheels();
+    
     if(s % 2 == 0) {
       tone(SPEAKER_1, 2000, 1000);
       tone(SPEAKER_2, 2000, 1000);
     } 
-
-    moveWheels();
   }
+}
+
+void alarmOff() {
+  alarmPlaying = false;
+  digitalWrite(MA1,LOW);
+  analogWrite(PWMA,0);
 }
 
 void moveWheels() {
@@ -379,10 +370,10 @@ void setup() {
 
 void loop() {
   receiveEvent(1);
-  Serial.println(testVar);
-  if(testVar == 1) {
+  Serial.println(methodSignal);
+  if(methodSignal == 1) {
     timeSetterMode();
-  } else if (testVar == 6) {
+  } else if (methodSignal == 6) {
     alarmSetterMode();
   }
   timeTeller();
