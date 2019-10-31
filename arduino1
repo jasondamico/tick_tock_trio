@@ -35,9 +35,6 @@ void setup() {
   pinMode(RED_PORT, OUTPUT); // Red
   pinMode(YELLOW_PORT, OUTPUT); // Yellow
   pinMode(GREEN_PORT, OUTPUT); // Green
-/*
-  LCD.begin(9600); // set up serial port for 9600 baud
-  delay(500); // wait for display to boot up*/
 }
 
 void countUp() {
@@ -69,8 +66,6 @@ void loop() {
     countUp();
   }
 
-  
-
   if(counter == 200) {
     Wire.beginTransmission(2); // transmit to device #2
     Wire.write(1);
@@ -83,13 +78,22 @@ void loop() {
   
   counter = 0;
   
-  while(analogRead(RED_BUTTON) == 0) {
+  while(analogRead(RED_BUTTON) == 0 && counter < 200) {
     digitalWrite(RED_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
     digitalWrite(GREEN_PORT, LOW);
 
     countUp();
+  }
+
+  if(counter == 200) {
+    Wire.beginTransmission(2); // transmit to device #2
+    Wire.write(11);
+    Wire.endTransmission(true);    // stop 
+    delay(1000);
+      
+    Serial.println("Message sent...");
   }
   
   counter = 0;
@@ -115,7 +119,7 @@ void loop() {
   
   counter = 0;
   
-  while (analogRead(YELLOW_BUTTON) == 0) {
+  while (analogRead(YELLOW_BUTTON) == 0 && counter < 200) {
     digitalWrite(YELLOW_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(RED_PORT, LOW);
@@ -123,6 +127,16 @@ void loop() {
 
     countUp();
   }
+
+  if(counter == 200) {
+    Wire.beginTransmission(2); // transmit to device #2
+    Wire.write(12);
+    Wire.endTransmission(true);    // stop 
+    delay(1000);
+      
+    Serial.println("Message sent...");
+  }
+  
   digitalWrite(BLUE_PORT, LOW);
   digitalWrite(RED_PORT, LOW);
   digitalWrite(YELLOW_PORT, LOW);
@@ -153,46 +167,8 @@ void checkAlarm(int hours, int mins) {
   }
 }
 
-// LCD FUNCTIONS
-/*
-/* 16 spaces 
-void clearLCD() {
-  LCD.write("                ");
-  LCD.write("                ");
-}
-
-void toFirstLine() {
-  LCD.write(254); 
-  LCD.write(128);
-}
-
-void toSecondLine() {
-  LCD.write(254);
-  LCD.write(192);
-}
-
-void resetLCD() {
-  clearLCD();
-  toFirstLine();
-}
-
-void playAlarm(int level) {
-  resetLCD();
-  LCD.write("WAKE UP!");
-  
-  if(level == 1) {
-    digitalWrite(GREEN_PORT, HIGH); // Green
-  } 
-  else if (level == 2) {
-    digitalWrite(YELLOW_PORT, HIGH); // Yellow
-  }
-  else if (level == 3) {
-    digitalWrite(RED_PORT, HIGH); // Red
-  }
-}
-*/
-
 void timeSetterMode() {
+  int startTime = millis();
   boolean buttonPushed = false;
   boolean firstRun = true;
   boolean switchMethod = false;
