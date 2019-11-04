@@ -2,13 +2,31 @@
 #include <Wire.h> // For master/slave
 
 // CONSTANTS
-int SPEAKER_1 = 9;
-int SPEAKER_2 = 8;
+const int SPEAKER_1 = 9;
+const int SPEAKER_2 = 8;
+
 const int MA1=2;
 const int MA2=4;
 const int PWMA=3;
 
-int LCD_PORT = 6;
+const int LCD_PORT = 6;
+
+// SIGNAL CONSTANTS
+
+const int TIME_SETTER = 1;
+const int HOUR_UP = 2;
+const int HOUR_TO_MIN = 3;
+const int MINUTE_UP = 4;
+const int EXIT_TIME_SETTER = 5;
+
+const int ALARM_SETTER = 6;
+const int ALARM_HOUR_UP = 7;
+const int ALARM_HOUR_TO_MIN = 8;
+const int ALARM_MINUTE_UP = 9;
+const int EXIT_ALARM_SETTER = 10;
+
+const int ALARM_ON = 11;
+const int ALARM_OFF = 12;
 
 // GLOBAL VARIABLES
 
@@ -63,23 +81,23 @@ void checkAlarmTime() {
 void receiveEvent(int howMany) {
   while(0 < Wire.available()) {
       methodSignal = Wire.read();
-      if(methodSignal == 2) {
+      if(methodSignal == HOUR_UP) {
         h++;
         checkTimeOfDay();
-      } else if (methodSignal == 4) {
+      } else if (methodSignal == MINUTE_UP) {
         m++;
-      } else if (methodSignal == 7) {
+      } else if (methodSignal == ALARM_HOUR_UP) {
         alarmH++;
         checkAlarmTimeOfDay();
-      } else if (methodSignal == 9) {
+      } else if (methodSignal == ALARM_MINUTE_UP) {
         alarmM++;
-      } else if (methodSignal == 11) {
+      } else if (methodSignal == ALARM_ON) {
         if (alarmOn) {
           alarmOn = false;
         } else {
           alarmOn = true;
         }
-      } else if (methodSignal == 12) {
+      } else if (methodSignal == ALARM_OFF) {
         alarmOff();
       }
   }
@@ -161,7 +179,7 @@ void timeSetterMode() {
     receiveEvent(1);
     displayTime("timeSetterMode");
 
-    if(methodSignal == 3) {
+    if(methodSignal == HOUR_TO_MIN) {
       resetLCD();
       switchMethod = true;
     }
@@ -174,7 +192,7 @@ void timeSetterMode() {
 
     displayTime("timeSetterMode");
 
-    if(methodSignal == 5){
+    if(methodSignal == EXIT_TIME_SETTER){
       resetLCD();
       switchMethod = true;
     }
@@ -196,7 +214,7 @@ void alarmSetterMode() {;
     
     displayAlarm("alarmSetterMode");
 
-    if(methodSignal == 8) {
+    if(methodSignal == ALARM_HOUR_TO_MIN) {
       resetLCD();
       switchMethod = true;
     }
@@ -209,7 +227,7 @@ void alarmSetterMode() {;
 
     displayAlarm("alarmSetterMode");
 
-    if(methodSignal == 10){
+    if(methodSignal == EXIT_ALARM_SETTER){
       resetLCD();
       switchMethod = true;
     }
@@ -371,9 +389,9 @@ void setup() {
 void loop() {
   receiveEvent(1);
   Serial.println(methodSignal);
-  if(methodSignal == 1) {
+  if(methodSignal == TIME_SETTER) {
     timeSetterMode();
-  } else if (methodSignal == 6) {
+  } else if (methodSignal == ALARM_SETTER) {
     alarmSetterMode();
   }
   timeTeller();
