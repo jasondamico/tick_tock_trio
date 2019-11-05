@@ -28,12 +28,14 @@ const int EXIT_ALARM_SETTER = 10;
 const int ALARM_ON = 11;
 const int ALARM_OFF = 12;
 
+const int MOTORS_OFF = 13;
+
 // GLOBAL VARIABLES
 
 int alarmH = 12;
 int alarmM = 1;
 String alarmTimeOfDay = "am";
-boolean alarmOn = false;
+boolean alarmOn = true;
 boolean alarmPlaying = false;
 
 int h = 0;
@@ -96,9 +98,12 @@ void receiveEvent(int howMany) {
           alarmOn = false;
         } else {
           alarmOn = true;
+          motorsOn();
         }
       } else if (methodSignal == ALARM_OFF) {
         alarmOff();
+      } else if (methodSignal == MOTORS_OFF) {
+        motorsOff();
       }
   }
 
@@ -344,13 +349,10 @@ void alarm() {
   if(alarmOn && alarmH == h && alarmM == m && s == 0){
     resetLCD();
     alarmPlaying = true;
-
-    alarmPlaying = true;
-    
+    motorsOn();    
   } 
 
   if(alarmPlaying) {
-    moveWheels();
     
     if(s % 2 == 0) {
       tone(SPEAKER_1, 2000, 1000);
@@ -361,14 +363,18 @@ void alarm() {
 
 void alarmOff() {
   alarmPlaying = false;
-  digitalWrite(MA1,LOW);
-  analogWrite(PWMA,0);
+  motorsOff();
 }
 
-void moveWheels() {
+void motorsOn() {
   digitalWrite(MA1,HIGH);
   digitalWrite(MA2,LOW);
   analogWrite(PWMA,255);
+}
+
+void motorsOff() {
+  digitalWrite(MA1,LOW);
+  analogWrite(PWMA,0);  
 }
 
 void setup() {
