@@ -18,6 +18,8 @@ const int RED_BUTTON = A1;
 const int GREEN_BUTTON = A2;
 const int YELLOW_BUTTON = A3;
 
+const int ANALOG_VAL = 25;
+
 // SIGNAL CONSTANTS
 
 const int TIME_SETTER = 1;
@@ -37,6 +39,8 @@ const int ALARM_OFF = 12;
 
 const int MOTORS_OFF = 13;
 
+const int UNIVERSAL_ON = 14;
+
 // GLOBAL VARIABLES
 
 int alarmHour = 13;
@@ -48,6 +52,7 @@ int s = 0;
 int ms = 0;
 String timeOfDay = "am";
 boolean alarmOn = true;
+boolean clockOn = false;
 
 void setup() {
   // put your setup code here, to run once:
@@ -68,9 +73,26 @@ void countUp() {
 }
 
 void loop() {
+  while(counter < 200 && !clockOn){
+    counter = 0;
+
+    while(analogRead(RED_BUTTON) <= ANALOG_VAL && counter < 200) {
+      countUp();
+    }
+
+    if(counter == 200) {
+      Wire.beginTransmission(2); // transmit to device #2
+      Wire.write(UNIVERSAL_ON);
+      Wire.endTransmission(true);    // stop 
+
+      clockOn = true;
+      delay(1000);
+    }
+  }
+  
   counter = 0;
   
-  while(analogRead(BLUE_BUTTON) == 0 && counter < 200) {
+  while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && counter < 200) {
     digitalWrite(BLUE_PORT, HIGH);
     digitalWrite(RED_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
@@ -91,7 +113,7 @@ void loop() {
   
   counter = 0;
   
-  while(analogRead(RED_BUTTON) == 0 && counter < 200) {
+  while(analogRead(RED_BUTTON) <= ANALOG_VAL && counter < 200) {
     digitalWrite(RED_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(YELLOW_PORT, LOW);
@@ -111,7 +133,7 @@ void loop() {
   
   counter = 0;
   
-  while (analogRead(GREEN_BUTTON) == 0 && counter < 200) {
+  while (analogRead(GREEN_BUTTON) <= ANALOG_VAL && counter < 200) {
     digitalWrite(GREEN_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(RED_PORT, LOW);
@@ -132,7 +154,7 @@ void loop() {
   
   counter = 0;
   
-  while (analogRead(YELLOW_BUTTON) == 0 && counter < 200) {
+  while (analogRead(YELLOW_BUTTON) <= ANALOG_VAL && counter < 200) {
     digitalWrite(YELLOW_PORT, HIGH);
     digitalWrite(BLUE_PORT, LOW);
     digitalWrite(RED_PORT, LOW);
@@ -161,11 +183,8 @@ void loop() {
   Serial.print("    ");
   Serial.print(analogRead(A2));
   Serial.print("    ");
-  Serial.print(analogRead(A3));
-
-  Serial.print("              ");
-  Serial.println(SharpIR.distance());
-
+  Serial.println(analogRead(A3));
+/*
   if(SharpIR.distance() == 4){
     Wire.beginTransmission(2); // transmit to device #2
     Wire.write(MOTORS_OFF);
@@ -174,7 +193,7 @@ void loop() {
     Serial.println("Nice.");
     delay(1000);
     
-  }
+  }*/
 }
 
 void setAlarm(int hour, int mins) {
@@ -202,13 +221,13 @@ void timeSetterMode() {
   // Changing the hour
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(BLUE_BUTTON) != 0) {
+      if(analogRead(BLUE_BUTTON) >= ANALOG_VAL) {
         firstRun = false;
         delay(100);
       }
     }
     
-    while(analogRead(BLUE_BUTTON) == 0 && !switchMethod) {
+    while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
@@ -241,13 +260,13 @@ void timeSetterMode() {
   // Changing the minutes
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(BLUE_BUTTON) != 0) {
+      if(analogRead(BLUE_BUTTON) >= ANALOG_VAL) {
         firstRun = false;
         delay(100);
       }
     }
 
-    while(analogRead(BLUE_BUTTON) == 0 && !switchMethod) {
+    while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
@@ -282,13 +301,13 @@ void alarmSetterMode() {
   // Changing the hour
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(GREEN_BUTTON) != 0) {
+      if(analogRead(GREEN_BUTTON) >= ANALOG_VAL) {
         firstRun = false;
         delay(100);
       }
     }
     
-    while(analogRead(GREEN_BUTTON) == 0 && !switchMethod) {
+    while(analogRead(GREEN_BUTTON) <= ANALOG_VAL && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
@@ -321,13 +340,13 @@ void alarmSetterMode() {
   // Changing the minutes
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(GREEN_BUTTON) != 0) {
+      if(analogRead(GREEN_BUTTON) >= ANALOG_VAL) {
         firstRun = false;
         delay(100);
       }
     }
 
-    while(analogRead(GREEN_BUTTON) == 0 && !switchMethod) {
+    while(analogRead(GREEN_BUTTON) <= ANALOG_VAL && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
