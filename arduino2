@@ -30,6 +30,8 @@ const int ALARM_OFF = 12;
 
 const int MOTORS_OFF = 13;
 
+const int UNIVERSAL_ON = 14;
+
 // GLOBAL VARIABLES
 
 int alarmH = 12;
@@ -388,6 +390,15 @@ void setup() {
 
   LCD.begin(9600); // set up serial port for 9600 baud
   delay(500); // wait for display to boot 
+
+  LCD.write("                ");
+  LCD.write("                ");
+
+  while(methodSignal != UNIVERSAL_ON) {
+    receiveEvent(1);
+    Serial.print("STUCK!   ");
+    Serial.println(methodSignal);
+  }
 
   setTime(12, 0);
 }
