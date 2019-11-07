@@ -2,14 +2,18 @@
 #include <Wire.h> // For master/slave
 
 // CONSTANTS
-const int SPEAKER_1 = 9;
-const int SPEAKER_2 = 8;
+const int SPEAKER_1 = 11;
 
 const int MA1=2;
 const int MA2=4;
 const int PWMA=3;
 
-const int LCD_PORT = 6;
+const int LCD_PORT = 5;
+
+const int GREEN_LIGHT = 7;
+const int YELLOW_LIGHT = 8;
+const int RED_LIGHT = 9;
+const int BLUE_LIGHT = 10;
 
 // SIGNAL CONSTANTS
 
@@ -26,7 +30,7 @@ const int ALARM_MINUTE_UP = 9;
 const int EXIT_ALARM_SETTER = 10;
 
 const int ALARM_ON = 11;
-const int ALARM_OFF = 12;
+const int SNOOZE = 12;
 
 const int MOTORS_OFF = 13;
 
@@ -39,6 +43,7 @@ int alarmM = 1;
 String alarmTimeOfDay = "am";
 boolean alarmOn = true;
 boolean alarmPlaying = false;
+int alarmNum = 1;
 
 int h = 0;
 int m = 0;
@@ -48,7 +53,7 @@ int methodSignal = 0;
 String timeOfDay = "am";
 
 // Attach the serial enabld LCD's RX line to digital pin 6
-SoftwareSerial LCD(LCD_PORT, 5); // Arduino SS_RX = pin 6 (unused), Arduino SS_TX = pin 5 
+SoftwareSerial LCD(6, LCD_PORT); // Arduino SS_RX = pin 6 (unused), Arduino SS_TX = pin 5 
 
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
@@ -95,14 +100,13 @@ void receiveEvent(int howMany) {
         checkAlarmTimeOfDay();
       } else if (methodSignal == ALARM_MINUTE_UP) {
         alarmM++;
-      } else if (methodSignal == ALARM_ON) {
+      } else if (methodSignal == ALARM_ON && !alarmPlaying) {
         if (alarmOn) {
           alarmOn = false;
         } else {
           alarmOn = true;
-          motorsOn();
         }
-      } else if (methodSignal == ALARM_OFF) {
+      } else if (methodSignal == SNOOZE || (methodSignal == ALARM_ON && alarmPlaying)) {
         alarmOff();
       } else if (methodSignal == MOTORS_OFF) {
         motorsOff();
@@ -351,21 +355,50 @@ void alarm() {
   if(alarmOn && alarmH == h && alarmM == m && s == 0){
     resetLCD();
     alarmPlaying = true;
-    motorsOn();    
+    motorsOn();
+
+    if(alarmNum == 1) {
+      digitalWrite(GREEN_LIGHT, HIGH);
+    } else if (alarmNum == 2) {
+      digitalWrite(YELLOW_LIGHT, HIGH);
+    } else if (alarmNum == 3) {
+      digitalWrite(RED_LIGHT, HIGH);
+    }
   } 
 
   if(alarmPlaying) {
-    
     if(s % 2 == 0) {
       tone(SPEAKER_1, 2000, 1000);
-      tone(SPEAKER_2, 2000, 1000);
     } 
   }
 }
 
 void alarmOff() {
-  alarmPlaying = false;
-  motorsOff();
+  if(alarmPlaying) {
+    alarmM++;
+    if(alarmM >= 60) {
+      alarmM = alarmM - 60;
+      alarmH++;
+      checkAlarmTimeOfDay();
+  
+      if(alarmH == 13) {
+        alarmH = 1;
+      }
+    }
+    
+    alarmPlaying = false;
+    motorsOff();
+    digitalWrite(RED_LIGHT, LOW);
+    digitalWrite(YELLOW_LIGHT, LOW);
+    digitalWrite(GREEN_LIGHT, LOW);
+    digitalWrite(BLUE_LIGHT, LOW);
+  
+    if(alarmNum == 3) {
+      alarmNum = 1;
+    } else {
+      alarmNum++;
+    }
+  }
 }
 
 void motorsOn() {
@@ -384,6 +417,11 @@ void setup() {
   Wire.onReceive(receiveEvent); // register event
   Serial.begin(9600);           // start serial for output
 
+  pinMode(GREEN_LIGHT, OUTPUT);
+  pinMode(YELLOW_LIGHT, OUTPUT);
+  pinMode(RED_LIGHT, OUTPUT);
+  pinMode(BLUE_LIGHT, OUTPUT);
+   
   pinMode(MA1,OUTPUT);
   pinMode(MA2,OUTPUT);
   pinMode(PWMA,OUTPUT);
