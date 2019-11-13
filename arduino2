@@ -1,3 +1,6 @@
+// ARDUINO 2 CODE
+// SIGNAL RECEIVER
+
 #include <SoftwareSerial.h>
 #include <Wire.h> // For master/slave
 
@@ -90,15 +93,15 @@ void checkAlarmTime() {
 void receiveEvent(int howMany) {
   while(0 < Wire.available()) {
       methodSignal = Wire.read();
-      if(methodSignal == HOUR_UP) {
+      if(methodSignal == HOUR_UP && !alarmPlaying) {
         h++;
         checkTimeOfDay();
-      } else if (methodSignal == MINUTE_UP) {
+      } else if (methodSignal == MINUTE_UP && !alarmPlaying) {
         m++;
-      } else if (methodSignal == ALARM_HOUR_UP) {
+      } else if (methodSignal == ALARM_HOUR_UP && !alarmPlaying) {
         alarmH++;
         checkAlarmTimeOfDay();
-      } else if (methodSignal == ALARM_MINUTE_UP) {
+      } else if (methodSignal == ALARM_MINUTE_UP && !alarmPlaying) {
         alarmM++;
       } else if (methodSignal == ALARM_ON && !alarmPlaying) {
         if (alarmOn) {
@@ -444,7 +447,7 @@ void setup() {
 void loop() {
   receiveEvent(1);
   Serial.println(methodSignal);
-  if(methodSignal == TIME_SETTER) {
+  if(methodSignal == TIME_SETTER && !alarmPlaying) {
     timeSetterMode();
   } else if (methodSignal == ALARM_SETTER) {
     alarmSetterMode();
