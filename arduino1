@@ -1,24 +1,25 @@
-// ARDUINO 1 
-// SIGNAL SENDER
+// ARDUINO 1: SIGNAL SENDER
 
+// Library Inclusions 
 #include <SoftwareSerial.h>
 #include <Wire.h> // For master/slave
 #include <SharpIR.h>
 
+// Definitions for distance sensor
 #define IR A0 // define signal pin
 #define model 1080 // used 1080 because model GP2Y0A21YK0F is used
 SharpIR SharpIR(IR, model);
 
-// CONSTANTS
+/* BUTTON CONSTANTS */
 
 const int BLUE_BUTTON = A1;
 const int GREEN_BUTTON = A2;
 const int YELLOW_BUTTON = A3;
 
-int ANALOG_VAL = 50;
+// Distance at which the clock stops
 const int DISTANCE = 13;
 
-// SIGNAL CONSTANTS
+/* SIGNAL CONSTANTS */
 
 const int TIME_SETTER = 1;
 const int HOUR_UP = 2;
@@ -32,270 +33,251 @@ const int ALARM_HOUR_TO_MIN = 8;
 const int ALARM_MINUTE_UP = 9;
 const int EXIT_ALARM_SETTER = 10;
 
-const int ALARM_ON = 11;
+const int ALARM_TRIGGER = 11;
 const int SNOOZE = 12;
 
 const int MOTORS_OFF = 13;
 
 const int UNIVERSAL_ON = 14;
 
-// GLOBAL VARIABLES
+/* GLOBAL VARIABLES */
 
-int alarmHour = 13;
-int alarmMin = 61;
+// Used to detect that a button is being pushed: too much current for
+// analogRead to be 0 when a button is pushed, there is some fluxuation
+int analog_val = 50;
+
+// Used to count how long a button is being held
 int counter = 0;
-int h = 0;
-int m = 0;
-int s = 0;
-int ms = 0;
-String timeOfDay = "am";
-boolean alarmOn = true;
+
 boolean clockOn = false;
 
+
+
+/* 
+ *  Runs once when the Arduino is first powered
+ */
 void setup() {
-  // put your setup code here, to run once:
   Wire.begin(); // join i2c bus (address optional for master)
-  
+
+  // Initializes terminal printer, which is used for testing and debugging
   Serial.begin(9600);
-  Serial.println("TIME TELLER");
-  
-  pinMode(BLUE_PORT, OUTPUT); // Blue
-  pinMode(RED_PORT, OUTPUT); // Red
-  pinMode(YELLOW_PORT, OUTPUT); // Yellow
-  pinMode(GREEN_PORT, OUTPUT); // Green
+  Serial.println("TESTING ENVIRONMENT");
 }
 
-void countUp() {
-  counter++;
-  Serial.println(counter);
-}
-
+/*
+ * Loops continuously while the Arduino is on
+ */
 void loop() {
+  // Loops until the clock is turned on
   while(counter < 200 && !clockOn){
     counter = 0;
 
-    while(analogRead(YELLOW_BUTTON) <= ANALOG_VAL && counter < 200) {
+    while(analogRead(YELLOW_BUTTON) <= analog_val && counter < 200) {
       countUp();
     }
 
+    // Signals that the alarm has been turned on
     if(counter == 200) {
-      Wire.beginTransmission(2); // transmit to device #2
-      Wire.write(UNIVERSAL_ON);
-      Wire.endTransmission(true);    // stop 
+      sendSignal(UNIVERSAL_ON);
 
       clockOn = true;
       delay(1000);
     }
   }
-  
-  counter = 0;
-  
-  while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && counter < 200) {
-    digitalWrite(BLUE_PORT, HIGH);
-    digitalWrite(RED_PORT, LOW);
-    digitalWrite(YELLOW_PORT, LOW);
-    digitalWrite(GREEN_PORT, LOW);
 
+  // Resets the counter after the button is no longer being pushed 
+  counter = 0;
+
+  // Loop is triggered if the blue button is being pushed, counts up
+  while(analogRead(BLUE_BUTTON) <= analog_val && counter < 200) {
     countUp();
   }
 
   if(counter == 200) {
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(TIME_SETTER);
-    Wire.endTransmission(true);    // stop 
+    // Signals for the Slave Arduino to enter Time Setter mode
+    sendSignal(TIME_SETTER);
       
     Serial.println("Message sent...");
     timeSetterMode();
   }
-  
-  counter = 0;
-  
-  while (analogRead(GREEN_BUTTON) <= ANALOG_VAL && counter < 200) {
-    digitalWrite(GREEN_PORT, HIGH);
-    digitalWrite(BLUE_PORT, LOW);
-    digitalWrite(RED_PORT, LOW);
-    digitalWrite(YELLOW_PORT, LOW);
 
+  // Resets the counter after the button is no longer being pushed 
+  counter = 0;
+
+  // Loop is triggered if the green button is being pushed, counts up
+  while (analogRead(GREEN_BUTTON) <= analog_val && counter < 200) {
     countUp();
   }
 
   if(counter == 200) {
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(ALARM_SETTER);
-    Wire.endTransmission(true);    // stop 
+    // Signals fot the Slave Arduino to enter Alarm Setter mode
+    sendSignal(ALARM_SETTER);
       
     Serial.println("Message sent...");
     alarmSetterMode();
   }
-  
-  counter = 0;
-  
-  while (analogRead(YELLOW_BUTTON) <= ANALOG_VAL && counter < 200) {
-    digitalWrite(YELLOW_PORT, HIGH);
-    digitalWrite(BLUE_PORT, LOW);
-    digitalWrite(RED_PORT, LOW);
-    digitalWrite(GREEN_PORT, LOW);
 
+  // Resets the counter after the button is no longer being pushed 
+  counter = 0;
+
+  // Loop is triggered if the yellow button is being pushed, counts up
+  while (analogRead(YELLOW_BUTTON) <= analog_val && counter < 200) {
     countUp();
   }
 
+  // Sends "SNOOZE" signal if button is pushed for an intermediate amount of time,
+  // sends "ALARM_TRIGGER" signal if held until the count is 200
   if(counter > 20 && counter < 200) {
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(SNOOZE);
-    Wire.endTransmission(true);    // stop 
+    sendSignal(SNOOZE);
     delay(1000);
       
     Serial.println("Message sent...");
   } else if (counter == 200) {
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(ALARM_ON);
-    Wire.endTransmission(true);    // stop 
+    sendSignal(ALARM_TRIGGER);
     delay(1000);
       
     Serial.println("Message sent...");
   }
-  
-  digitalWrite(BLUE_PORT, LOW);
-  digitalWrite(RED_PORT, LOW);
-  digitalWrite(YELLOW_PORT, LOW);
-  digitalWrite(GREEN_PORT, LOW); 
-    
-  Serial.print(analogRead(A0));
-  Serial.print("    ");
-  Serial.print(analogRead(A1));
-  Serial.print("    ");
-  Serial.print(analogRead(A2));
-  Serial.print("    ");
-  Serial.print(analogRead(A3));
-  Serial.print("           ");
+
+  // DEBUGGING CODE: Values of buttons and IR sensor are printed to monitor
+  Serial.print("B:");
+  Serial.print(analogRead(BLUE_BUTTON));
+  Serial.print("    G:");
+  Serial.print(analogRead(GREEN_BUTTON));
+  Serial.print("    Y:");
+  Serial.print(analogRead(YELLOW_BUTTON));
+  Serial.print("           IR: ");
   Serial.println(SharpIR.distance());
 
+  // Sends MOTORS_OFF signal when the distance sensor detects something in front of it
   if(SharpIR.distance() == DISTANCE){
-    Wire.beginTransmission(2); // transmit to device #2
-    Wire.write(MOTORS_OFF);
-    Wire.endTransmission(true);    // stop 
+    sendSignal(MOTORS_OFF);
 
-    Serial.println("Nice.");
-    delay(1000);
-    
+    Serial.println("Object detected");
+    delay(1000);    
   }
 }
 
-void setAlarm(int hour, int mins) {
-  alarmHour = hour;
-  alarmMin = mins;
-}
 
-void setTime(int hours, int mins) {
-  h = hours;
-  m = mins;
-}
+// SETTER MODES
 
-void checkAlarm(int hours, int mins) {
-  if (alarmHour == hours && alarmMin == mins){
-    Serial.println("ALARM");
-  }
-}
 
+/*
+ * Puts the Master Arduino into Time Setter Mode, which means that the pushes of
+ * the blue button coorespond to incrementing either the minutes or hours value by one.
+ */
 void timeSetterMode() {
-  ANALOG_VAL = 25;
-  int startTime = millis();
+  // Sets analog_val to 25 as the current is too great and thus the button would pick up phantom pushes if
+  // the value was still 50 (i.e. the sitting analog read value of the button at this point dips below 50)
+  analog_val = 25;
+  
   boolean buttonPushed = false;
   boolean firstRun = true;
   boolean switchMethod = false;
 
-  // Changing the hour
+  /* HOUR CHANGE */
   while(!switchMethod) {
+    // Waits for the button to stop being pushed, then breaking out of the loop and itiating the code below
     while(firstRun) {
-      if(analogRead(BLUE_BUTTON) >= ANALOG_VAL) {
+      if(analogRead(BLUE_BUTTON) >= analog_val) {
         firstRun = false;
         delay(1000);
       }
     }
-    
-    while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && !switchMethod) {
+
+    // Loop is executed if the button is being pushed and the method has not been switched
+    while(analogRead(BLUE_BUTTON) <= analog_val && !switchMethod) {
       countUp();
+
+      // Triggers increment of one hour once the loop is broken
       if(counter >= 80){
         buttonPushed = true;
       }
 
+      // Triggers a breaking of the loop (and thus switching to minute change)
       if(counter >= 600) {
         switchMethod = true;
       }
     } 
 
     if (buttonPushed && counter < 600) {
-      Wire.beginTransmission(2); // transmit to device #2
-      Wire.write(HOUR_UP);
-      Wire.endTransmission(true);    // stop 
+      sendSignal(HOUR_UP);
 
       buttonPushed = false;
     }
 
+    // Resets the counter after the button is no longer being pushed 
     counter = 0;
   } 
 
-  Wire.beginTransmission(2); // transmit to device #2
-  Wire.write(HOUR_TO_MIN);
-  Wire.endTransmission(true);    // stop
+  // Signals a switch from the hour editor to the minutes editor
+  sendSignal(HOUR_TO_MIN);
 
   switchMethod = false;
   firstRun = true;
   buttonPushed = false;
 
-  // Changing the minutes
+  /* MINUTE CHANGE */
   while(!switchMethod) {
+    // Waits for the button to stop being pushed, then breaking out of the loop and itiating the code below
     while(firstRun) {
-      if(analogRead(BLUE_BUTTON) >= ANALOG_VAL) {
+      if(analogRead(BLUE_BUTTON) >= analog_val) {
         firstRun = false;
         delay(1000);
       }
     }
 
-    while(analogRead(BLUE_BUTTON) <= ANALOG_VAL && !switchMethod) {
+    // Loop is executed if the button is being pushed and the method has not been switched
+    while(analogRead(BLUE_BUTTON) <= analog_val && !switchMethod) {
       countUp();
+
+      // Triggers increment of one minute once the loop is broken
       if(counter >= 80){
         buttonPushed = true;
       }
 
+      // Triggers a breaking of the loop (and thus exiting Time Setter Mode)
       if(counter >= 600) {
         switchMethod = true;
       }
     } 
 
     if (buttonPushed && counter < 600) {
-      Wire.beginTransmission(2); // transmit to device #2
-      Wire.write(MINUTE_UP);
-      Wire.endTransmission(true);    // stop 
+      sendSignal(MINUTE_UP);
 
       buttonPushed = false;
     }
 
+    // Resets the counter after the button is no longer being pushed 
     counter = 0;
   }
 
-  Wire.beginTransmission(2); // transmit to device #2
-  Wire.write(EXIT_TIME_SETTER);
-  Wire.endTransmission(true);    // stop  
+  // Sends a signal to the Slave to exit Time Setter Mode
+  sendSignal(EXIT_TIME_SETTER);
 
-  ANALOG_VAL = 50;
+  // Resets analog_val to 50 when returning to the loop
+  analog_val = 50;
 }
 
+/*
+ * Puts the Master Arduino into Alarm Setter Mode, which means that the pushes of
+ * the green button coorespond to incrementing either the alarm minutes or alarm hours value by one.
+ */
 void alarmSetterMode() {
   boolean buttonPushed = false;
   boolean firstRun = true;
   boolean switchMethod = false;
 
-  // Changing the hour
+  /* ALARM HOUR CHANGE */
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(GREEN_BUTTON) >= ANALOG_VAL) {
+      if(analogRead(GREEN_BUTTON) >= analog_val) {
         firstRun = false;
         delay(1000);
       }
     }
     
-    while(analogRead(GREEN_BUTTON) <= ANALOG_VAL && !switchMethod) {
+    while(analogRead(GREEN_BUTTON) <= analog_val && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
@@ -307,9 +289,7 @@ void alarmSetterMode() {
     } 
 
     if (buttonPushed && counter < 600) {
-      Wire.beginTransmission(2); // transmit to device #2
-      Wire.write(ALARM_HOUR_UP);
-      Wire.endTransmission(true);    // stop 
+      sendSignal(ALARM_HOUR_UP);
 
       buttonPushed = false;
     }
@@ -317,24 +297,22 @@ void alarmSetterMode() {
     counter = 0;
   } 
 
-  Wire.beginTransmission(2); // transmit to device #2
-  Wire.write(ALARM_HOUR_TO_MIN);
-  Wire.endTransmission(true);    // stop
+  sendSignal(ALARM_HOUR_TO_MIN);
 
   switchMethod = false;
   firstRun = true;
   buttonPushed = false;
 
-  // Changing the minutes
+  /* ALARM MINUTE CHANGE */
   while(!switchMethod) {
     while(firstRun) {
-      if(analogRead(GREEN_BUTTON) >= ANALOG_VAL) {
+      if(analogRead(GREEN_BUTTON) >= analog_val) {
         firstRun = false;
         delay(1000);
       }
     }
 
-    while(analogRead(GREEN_BUTTON) <= ANALOG_VAL && !switchMethod) {
+    while(analogRead(GREEN_BUTTON) <= analog_val && !switchMethod) {
       countUp();
       if(counter >= 20){
         buttonPushed = true;
@@ -346,9 +324,7 @@ void alarmSetterMode() {
     } 
 
     if (buttonPushed && counter < 600) {
-      Wire.beginTransmission(2); // transmit to device #2
-      Wire.write(ALARM_MINUTE_UP);
-      Wire.endTransmission(true);    // stop 
+      sendSignal(ALARM_MINUTE_UP);
 
       buttonPushed = false;
     }
@@ -356,28 +332,28 @@ void alarmSetterMode() {
     counter = 0;
   }
 
-  Wire.beginTransmission(2); // transmit to device #2
-  Wire.write(EXIT_ALARM_SETTER);
-  Wire.endTransmission(true);    // stop  
+  sendSignal(EXIT_ALARM_SETTER); 
 }
 
-void checkTime() {
-  if(s == 60) {
-    m++;
-    s = 0;
-  }
 
-  if(m == 60) {
-    h++;
-    m = 0;
-  }
+// UTILITY METHODS
 
-  if(h == 13) {
-    h = 1;
-    if (timeOfDay == "am") {
-      timeOfDay = "pm";
-    } else {
-      timeOfDay = "am";
-    }
-  }
+
+/*
+ * Coninually counts up, printing the value of the counter to the console
+ */
+void countUp() {
+  counter++;
+  Serial.println(counter);
+}
+
+/*
+ * Sends a signal to the slave Arduino
+ * 
+ * @param signalConst The signal constant to be sent to the slave Arduino
+ */
+void sendSignal(int signalConst) {
+  Wire.beginTransmission(2); // transmit to device #2
+  Wire.write(signalConst);
+  Wire.endTransmission(true);    // stop 
 }
